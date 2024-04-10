@@ -8,6 +8,7 @@ import sqlite3
 import form2  # Assuming this is another file/module
 from tkinter import messagebox
 import datetime
+import babel.numbers
 
 
 # Connect to the SQLite database
@@ -97,16 +98,27 @@ def clear_data():
 
 
 def toggle_new_button():
-    if new_button.cget("text") == "New" and form2.chosen_date:  # If button text is "New"
+    if new_button.cget('text') == 'New' and form2.chosen_date:  # If button text is "New"
         clear_data()  # Clear the text widget
-        new_button.config(text="Save")  # Change button text to "Save"
+        tasks_combo['values'] = ['New Task']
+        tasks_combo.current(0)
+        new_button.config(text='Save')  # Change button text to "Save"
+        edit_button.config(state='disabled')
+        history_button.config(state='disabled')
     elif form2.chosen_date:  # If button text is "Save"
         save_task()  # Save the task
-        new_button.config(text="New")  # Change button text back to "New"
         clear_data()  # Clear the text widget
+        tasks_combo['values'] = ['']
+        tasks_combo.current(0)
+        show()
+        tasks_combo.current(len(tasks_combo['values']) - 1)
+        show_selected_task(None)
+        new_button.config(text='New')  # Change button text back to "New"
+        edit_button.config(state='normal')
+        history_button.config(state='normal')
     else:
         messagebox.showwarning(
-            "Warning", "Please enter a valid Date.")
+            'Warning', 'Please enter a valid Date.')
 
 
 def save_task():
@@ -136,10 +148,20 @@ def save_task():
 def edit():
     if edit_button.cget("text") == "Edit" and tasks_combo.get():  # If button text is "Edit"
         # Change button text to "Save"
+        new_button.config(state='disabled')
+        history_button.config(state='disabled')
         edit_button.config(text="Save")
 
     elif tasks_combo.get():  # If button text is "Save"
         # Get the modified task description from the data text widget
+        edit_button.config(text="Edit")
+        new_button.config(state='normal')
+        history_button.config(state='normal')
+        if not data.get("1.0", "end-1c"):
+            show_selected_task(None)
+            messagebox.showwarning(
+                "Warning", "Please enter a task description.")
+            return
         modified_task_description = data.get('1.0', tk.END).strip()
         # Retrieve the corresponding task description from the task_dict dictionary
         selected_task = tasks_combo.get()  # Get the selected task label from the combobox
@@ -150,7 +172,7 @@ def edit():
         conn.commit()  # Commit the transaction
 
         # Change button text back to "Edit"
-        edit_button.config(text="Edit")
+
         show()
 
 
@@ -197,7 +219,7 @@ def mark_task_as_not_done():
 def show_history():
     form2.chosen_date = ''
     date_label.config(text='Data')
-    tasks_combo['values'] = [""]
+    tasks_combo['values'] = ['History']
     tasks_combo.current(0)
     done_button.config(background='white')
     not_done_button.config(background='white')
