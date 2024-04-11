@@ -1,14 +1,15 @@
 # Import necessary libraries
-import tkinter as tk
-import tkinter
-from tkinter import ttk
-from tkinter import *
-from tkcalendar import Calendar
-import sqlite3
-import form2  # Assuming this is another file/module
+import tkinter as tk  # Import the tkinter library and alias it as tk
+import tkinter  # Import the tkinter module
+from tkinter import ttk  # Import the ttk module from tkinter
+from tkinter import *  # Import all classes from tkinter
+from tkcalendar import Calendar  # Import the Calendar class from tkcalendar module
+import sqlite3  # Import the sqlite3 module for SQLite database operations
+import form2  # Import form2 module assuming it contains necessary functions
+# Import messagebox module from tkinter for displaying messages
 from tkinter import messagebox
-import datetime
-import babel.numbers
+import datetime  # Import datetime module for date and time operations
+import babel.numbers  # Import numbers module from babel for number formatting
 
 
 # Connect to the SQLite database
@@ -27,6 +28,9 @@ cur.execute('''CREATE TABLE IF NOT EXISTS tasks (
 
 
 def show():
+    """
+    Function to show tasks for the selected date.
+    """
     # Check if the user has chosen date or not
     if not form2.chosen_date:
         messagebox.showwarning(
@@ -59,18 +63,27 @@ def show():
 
         # Display the description of the first task
         show_selected_task(None)
+        new_button.config(state='normal')
+        edit_button.config(state='normal')
+        delete_button.config(state='normal')
     else:
         tasks_combo['values'] = [""]
         tasks_combo.current(0)
         done_button.config(background='white')
         not_done_button.config(background='white')
         clear_data()
+        new_button.config(state='normal')
+        edit_button.config(state='disabled')
+        delete_button.config(state='disabled')
         # Display a message if there are no tasks for the selected date
         messagebox.showwarning(
             "Warning", "There are no tasks for the selected date.")
 
 
 def show_selected_task(event):
+    """
+    Function to display the selected task description.
+    """
     selected_task = tasks_combo.get()  # Get the selected task from the combobox
     if selected_task:
         # Extract the task number and convert it to an index
@@ -94,10 +107,28 @@ def show_selected_task(event):
 
 
 def clear_data():
+    """
+    Function to clear the data text widget.
+    """
     data.delete('1.0', tk.END)  # Clear the text widget
 
 
 def toggle_new_button():
+    """
+    Function to toggle between adding a new task and saving the task.
+    """
+    current_date = form2.chosen_date
+
+    # Check if the chosen date is not in the past
+    if current_date < datetime.date.today().isoformat():
+        messagebox.showwarning(
+            "Warning", "You cannot add tasks to past dates.")
+        return
+    elif current_date == datetime.date.today().isoformat():
+        messagebox.showwarning(
+            "Warning", "You cannot add tasks on today.")
+        return
+
     if new_button.cget('text') == 'New' and form2.chosen_date:  # If button text is "New"
         clear_data()  # Clear the text widget
         tasks_combo['values'] = ['New Task']
@@ -105,6 +136,7 @@ def toggle_new_button():
         new_button.config(text='Save')  # Change button text to "Save"
         edit_button.config(state='disabled')
         history_button.config(state='disabled')
+        delete_button.config(state='disabled')
     elif form2.chosen_date:  # If button text is "Save"
         save_task()  # Save the task
         clear_data()  # Clear the text widget
@@ -116,16 +148,21 @@ def toggle_new_button():
         new_button.config(text='New')  # Change button text back to "New"
         edit_button.config(state='normal')
         history_button.config(state='normal')
+        delete_button.config(state='normal')
     else:
         messagebox.showwarning(
             'Warning', 'Please enter a valid Date.')
 
 
 def save_task():
+    """
+    Function to save a new task to the database.
+    """
     # Get task description from text widget
     task_description = data.get("1.0", tk.END).strip()
 
     if task_description and form2.chosen_date:  # If task description is not empty
+
         # Get the current date
         current_date = form2.chosen_date
         # Insert the new task into the database
@@ -146,6 +183,13 @@ def save_task():
 
 
 def edit():
+    """
+    Function to edit a task description.
+    """
+    if not tasks_combo.get():
+        messagebox.showwarning(
+            "Warning", "Please choose a task.")
+        return
     if edit_button.cget("text") == "Edit" and tasks_combo.get():  # If button text is "Edit"
         # Change button text to "Save"
         new_button.config(state='disabled')
@@ -177,6 +221,9 @@ def edit():
 
 
 def open_and_show():
+    """
+    Function to open a new window and show tasks.
+    """
     form2.create_new_page()
     # Wait for the Toplevel window to be destroyed
     window.wait_window(form2.window2)
@@ -185,6 +232,9 @@ def open_and_show():
 
 
 def mark_task_as_done():
+    """
+    Function to mark a task as done.
+    """
     selected_task = tasks_combo.get()  # Get the selected task label from the combobox
     # Check if a task is selected
     if not selected_task:
@@ -201,6 +251,9 @@ def mark_task_as_done():
 
 
 def mark_task_as_not_done():
+    """
+    Function to mark a task as not done.
+    """
     selected_task = tasks_combo.get()  # Get the selected task label from the combobox
     # Check if a task is selected
     if not selected_task:
@@ -217,6 +270,13 @@ def mark_task_as_not_done():
 
 
 def show_history():
+    """
+    Function to display task history.
+    """
+    new_button.config(state='disabled')
+    edit_button.config(state='disabled')
+    delete_button.config(state='disabled')
+
     form2.chosen_date = ''
     date_label.config(text='Data')
     tasks_combo['values'] = ['History']
@@ -254,10 +314,42 @@ def show_history():
 Success percentage: {success_percentage:.2f}%''')
 
 
+def delete_task():
+    """
+    Function to delete a task.
+    """
+    current_date = form2.chosen_date
+
+    # Check if the chosen date is not in the past
+    if current_date < datetime.date.today().isoformat():
+        messagebox.showwarning(
+            "Warning", "You cannot delete tasks of past dates.")
+        return
+    elif current_date == datetime.date.today().isoformat():
+        messagebox.showwarning(
+            "Warning", "You cannot delete tasks of today.")
+        return
+    selected_task = tasks_combo.get()  # Get the selected task label from the combobox
+    edit_button.config(text='Edit')
+    history_button.config(state='normal')
+    # Check if a task is selected
+    if not selected_task:
+        messagebox.showwarning("Warning", "Please select a task.")
+        return
+    task_id = tasks_dict[selected_task][0]
+
+    cur.execute(
+        "DELETE FROM tasks WHERE task_id = ?", (task_id,))
+    conn.commit()  # Commit the transaction
+    # Display a message indicating that the task has been marked as done
+    messagebox.showinfo("Success", "The task has successfullly deleted.")
+    show()
+
+
 # Creating tkinter window and frames
 window = tk.Tk()
 window.title("Todo Pro")
-window.geometry('440x275')
+window.geometry('440x310')
 frame = tkinter.Frame(window)
 frame.pack()
 
@@ -291,6 +383,9 @@ edit_button.pack(pady=5)
 new_button = tk.Button(left_frame, text='New', command=toggle_new_button)
 new_button.pack(pady=5)
 
+delete_button = tk.Button(left_frame, text='Delete', command=delete_task)
+delete_button.pack(pady=5)
+
 history_button = tk.Button(left_frame, text='History', command=show_history)
 history_button.pack(pady=5)
 
@@ -308,11 +403,11 @@ data.config(yscrollcommand=scrollbar.set)
 
 
 done_button = tk.Button(right_frame, text='Done', command=mark_task_as_done)
-done_button.pack(pady=5)
+done_button.pack(pady=10)
 
 not_done_button = tk.Button(
     right_frame, text='Not Done', command=mark_task_as_not_done)
-not_done_button.pack(pady=5)
+not_done_button.pack(pady=10)
 
 tasks_combo.bind("<<ComboboxSelected>>", show_selected_task)
 
